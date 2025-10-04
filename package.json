@@ -1,0 +1,14 @@
+{
+  "private": true,
+  "module": true,
+  "scripts": {
+    "test": "node --test game.test.ts"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.2",
+    "@types/node": "^20.0.0"
+  },
+  "prettier": {
+    "semi": false
+  }
+}
