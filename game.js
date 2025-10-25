@@ -10,7 +10,7 @@ const KEYS = [
   "KeyA",
   "KeyS",
   "KeyD",
-  "LeftShift",
+  "KeyE",
 ]
 
 export class GameEntity {
@@ -50,18 +50,28 @@ export class GamePoison extends GameItem {
 }
 
 export class GameModel {
+  /** @type {'playing' | 'gameover'} */
+  state = "playing"
+  winningEnergy = 20
   simulationTime = 0
   frameTime = 0
-  interval = 100
+  interval = 50
+  speed = 0
   size = 100
   /** @type {GamePlayer[]} */
   players = []
+  playersEnergy = 0
   /** @type {GameEnemy[]} */
   enemies = []
+  enemiesEnergy = 0
   /** @type {GameItem[]} */
   items = []
   /** @type {GamePoison[]} */
   poisons = []
+
+  constructor() {
+    this.speed = this.interval / 100
+  }
 }
 
 export class GameView {
@@ -76,7 +86,7 @@ export class GameView {
 export default function (ctx) {
   const keyboard = initKeyboard()
   const model = new GameModel()
-  for (let i = 0; i < 2; i++) {
+  for (let i = 0; i < 1; i++) {
     const player = new GamePlayer()
     player.index = i
     player.free = false
@@ -84,7 +94,7 @@ export default function (ctx) {
     Object.assign(player.pos, randomPos(model))
     model.players.push(player)
   }
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < 2; i++) {
     const enemy = new GameEnemy()
     enemy.free = false
     Object.assign(enemy.pos, randomPos(model))
@@ -142,7 +152,18 @@ export function animate(
     model.frameTime = (accumulator % model.interval) / model.interval
     while (accumulator >= model.interval) {
       model.simulationTime += model.interval
-      update(model, getInputs(keyboard))
+      if (model.state === "playing") {
+        update(model, getInputs(keyboard))
+        if (model.enemiesEnergy >= model.playersEnergy) {
+          if (model.enemiesEnergy >= model.winningEnergy) {
+            model.state = "gameover"
+            console.log("You lose!")
+          }
+        } else if (model.playersEnergy >= model.winningEnergy) {
+          model.state = "gameover"
+          console.log("You win!")
+        }
+      }
       accumulator -= model.interval
       for (let i = 0; i < model.players.length; i++) {
         const player = model.players[i]
@@ -250,8 +271,9 @@ export function draw(model, view, ctx) {
   const playersEnergy = model.players.reduce((sum, p) => sum + p.energy, 0)
   const enemiesEnergy = model.enemies.reduce((sum, e) => sum + e.energy, 0)
   ctx.font = `${5 * view.scale}px sans-serif`
-  ctx.fillText(`${playersEnergy}`, 20, 120)
-  ctx.fillText(`${enemiesEnergy}`, 20, 240)
+  ctx.textAlign = "left"
+  ctx.fillText(`${playersEnergy}`, 100, 120)
+  ctx.fillText(`${enemiesEnergy}`, 100, 240)
 }
 
 /**
@@ -271,15 +293,28 @@ export function drawPlayer(player, model, view, ctx) {
   ctx.lineWidth = 0.3 * view.scale
   ctx.stroke()
 
-  const energyAngleStep = TAU / Math.min(20, player.energy)
-  for (let a = 0; a < TAU; a += energyAngleStep) {
-    const ex = x + Math.cos(a) * radius * 0.7
-    const ey = y + Math.sin(a) * radius * 0.7
-    ctx.beginPath()
-    ctx.arc(ex, ey, radius * 0.2, 0, TAU)
-    ctx.closePath()
-    ctx.fillStyle = "#ff0c"
-    ctx.fill()
+  ctx.font = `${3 * view.scale}px sans-serif`
+  ctx.fillStyle = player.color === "white" ? "black" : "white"
+  ctx.textAlign = "center"
+  ctx.textBaseline = "middle"
+  ctx.fillText(`${player.energy}`, x, y)
+
+  if (player.energy) {
+    // they should spin around
+    const offsetAngle = (model.simulationTime / 5000) * TAU
+    const energyAngleStep = TAU / Math.min(20, player.energy)
+    for (let a = 0; a < TAU; a += energyAngleStep) {
+      const ex = x + Math.cos(a + offsetAngle) * radius * 0.7
+      const ey = y + Math.sin(a + offsetAngle) * radius * 0.7
+      ctx.beginPath()
+      ctx.arc(ex, ey, radius * 0.2, 0, TAU)
+      ctx.closePath()
+      ctx.strokeStyle = "#0009"
+      ctx.lineWidth = 0.2 * view.scale
+      ctx.stroke()
+      ctx.fillStyle = "#ff0c"
+      ctx.fill()
+    }
   }
 }
 
@@ -322,17 +357,17 @@ export function drawItem(item, model, view, ctx) {
 }
 
 /**
- * @param {GamePoison} item
+ * @param {GamePoison} poison
  * @param {GameModel} model
  * @param {GameView} view
  * @param {CanvasRenderingContext2D} ctx
  */
-export function drawPoison(item, model, view, ctx) {
-  const { x, y, radius } = resolveEntity(item, model, view)
+export function drawPoison(poison, model, view, ctx) {
+  const { x, y, radius } = resolveEntity(poison, model, view)
   ctx.beginPath()
   ctx.arc(x, y, radius, 0, TAU)
   ctx.closePath()
-  ctx.fillStyle = item.color
+  ctx.fillStyle = poison.color
   ctx.fill()
   ctx.strokeStyle = "#0009"
   ctx.lineWidth = 0.3 * view.scale
@@ -348,15 +383,17 @@ export function update(model, inputs) {
     const player = model.players[i]
     player.oldPos = null
     const input = inputs[i]
-    if (input) applyVelocity(input.velocity, player, model)
+    if (input?.velocity) applyVelocity(input.velocity, player, model)
     if (input?.action) {
-      if (player.energy > 0) {
-        player.energy--
+      if (player.energy >= 3) {
+        player.energy = 0
         const poison = getFree(model.poisons)
         if (poison) poison.pos = { ...player.pos }
+        console.log("action", poison)
       }
-      console.log("action")
     }
+    model.playersEnergy = model.players.reduce((sum, p) => sum + p.energy, 0)
+    model.enemiesEnergy = model.enemies.reduce((sum, e) => sum + e.energy, 0)
   }
   for (const enemy of model.enemies) {
     enemy.oldPos = null
@@ -403,19 +440,19 @@ export function update(model, inputs) {
     for (const enemy of model.enemies) {
       if (enemy.free) continue
       if (collides(poison, enemy)) {
-        enemy.energy--
+        enemy.energy = Math.ceil(enemy.energy / 2)
         poison.free = true
         continue nextPoison
       }
     }
-    for (const player of model.players) {
-      if (player.free) continue
-      if (collides(poison, player)) {
-        player.energy--
-        poison.free = true
-        continue nextPoison
-      }
-    }
+    // for (const player of model.players) {
+    //   if (player.free) continue
+    //   if (collides(poison, player)) {
+    //     player.energy /= 2
+    //     poison.free = true
+    //     continue nextPoison
+    //   }
+    // }
   }
 }
 
@@ -425,8 +462,8 @@ export function update(model, inputs) {
  * @param {GameModel} model
  */
 export function applyVelocity(velocity, entity, model) {
-  let x = entity.pos.x + velocity.x * entity.speed
-  let y = entity.pos.y + velocity.y * entity.speed
+  let x = entity.pos.x + velocity.x * entity.speed * model.speed
+  let y = entity.pos.y + velocity.y * entity.speed * model.speed
   if (x < entity.radius) {
     x = entity.radius
     velocity.x = 0
@@ -467,7 +504,7 @@ export function resolvePos(pos, view) {
 export function resolveEntity(entity, model, view) {
   let x = view.offset.x + entity.pos.x * view.scale
   let y = view.offset.y + entity.pos.y * view.scale
-  if (entity.oldPos) {
+  if (entity.oldPos && model.state === "playing") {
     const t = model.frameTime
     x = view.offset.x + lerp(entity.oldPos.x, entity.pos.x, t) * view.scale
     y = view.offset.y + lerp(entity.oldPos.y, entity.pos.y, t) * view.scale
@@ -585,8 +622,8 @@ export function getInputs(keyboard, gamepads = navigator.getGamepads()) {
     const dist = Math.hypot(x, y)
     if (dist > 0) x /= dist
     if (dist > 0) y /= dist
-    if (x === 0 && y === 0) continue
-    const velocity = { x, y }
+    let velocity
+    if (x !== 0 || y !== 0) velocity = { x, y }
     inputs[i] = { velocity, action }
   }
   return inputs

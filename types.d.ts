@@ -5,7 +5,7 @@ type GamePos = {
 }
 type GameVelocity = GamePos
 type GameInput = {
-  velocity: GameVelocity
+  velocity?: GameVelocity
   action: boolean
 }
 type GamePath = {
