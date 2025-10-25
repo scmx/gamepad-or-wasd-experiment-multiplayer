@@ -52,7 +52,7 @@ export class GamePoison extends GameItem {
 export class GameModel {
   /** @type {'playing' | 'gameover'} */
   state = "playing"
-  winningEnergy = 20
+  winningEnergy = 100
   simulationTime = 0
   frameTime = 0
   interval = 50
@@ -86,7 +86,7 @@ export class GameView {
 export default function (ctx) {
   const keyboard = initKeyboard()
   const model = new GameModel()
-  for (let i = 0; i < 1; i++) {
+  for (let i = 0; i < 2; i++) {
     const player = new GamePlayer()
     player.index = i
     player.free = false
@@ -309,10 +309,10 @@ export function drawPlayer(player, model, view, ctx) {
       ctx.beginPath()
       ctx.arc(ex, ey, radius * 0.2, 0, TAU)
       ctx.closePath()
-      ctx.strokeStyle = "#0009"
+      ctx.strokeStyle = "#000"
       ctx.lineWidth = 0.2 * view.scale
       ctx.stroke()
-      ctx.fillStyle = "#ff0c"
+      ctx.fillStyle = "#ff0"
       ctx.fill()
     }
   }
@@ -604,15 +604,23 @@ export function getInputs(keyboard, gamepads = navigator.getGamepads()) {
     if (!gamepad?.connected) continue
 
     const [x, y] = gamepad.axes
-    if (Math.abs(x) + Math.abs(y) < 0.5) continue
-    const velocity = { x, y }
+    let velocity = { x: 0, y: 0 }
+    if (Math.abs(x) + Math.abs(y) >= 0.5) {
+      velocity = { x, y }
+    }
     const action = gamepad.buttons[0].pressed
+    // console.log(
+    //   gamepad.buttons
+    //     .map((b, i) => ({ b, i }))
+    //     .filter(({ b }) => b.pressed)
+    //     .map(({ i }) => i),
+    // )
     inputs[gamepad.index] = { velocity, action }
-    console.log(
-      gamepad.buttons
-        .map((b, i) => b.pressed && i)
-        .filter((i) => typeof i === "number"),
-    )
+    // console.log(
+    //   gamepad.buttons
+    //     .map((b, i) => b.pressed && i)
+    //     .filter((i) => typeof i === "number"),
+    // )
   }
   for (let i = 0, n = ACTIONS.length; i < n; i++) {
     if (inputs[i]) continue
