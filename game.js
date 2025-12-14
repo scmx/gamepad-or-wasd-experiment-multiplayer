@@ -52,7 +52,7 @@ export class GamePoison extends GameItem {
 export class GameModel {
   /** @type {'playing' | 'gameover'} */
   state = "playing"
-  winningEnergy = 20
+  winningEnergy = 100
   simulationTime = 0
   frameTime = 0
   interval = 50
