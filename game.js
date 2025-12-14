@@ -340,8 +340,6 @@ export function drawPlayer(player, model, view, ctx) {
  */
 export function drawEnemy(enemy, model, view, ctx) {
   const { x, y, radius } = resolveEntity(enemy, model, view)
-  // for (const gp of getEnemyPaths()) {
-  // }
   ctx.beginPath()
   ctx.arc(x, y, radius, 0, TAU)
   ctx.closePath()
@@ -459,14 +457,6 @@ export function update(model, inputs) {
         continue nextPoison
       }
     }
-    // for (const player of model.players) {
-    //   if (player.free) continue
-    //   if (collides(poison, player)) {
-    //     player.energy /= 2
-    //     poison.free = true
-    //     continue nextPoison
-    //   }
-    // }
   }
 }
 
@@ -524,9 +514,6 @@ export function resolveEntity(entity, model, view) {
     y = view.offset.y + lerp(entity.oldPos.y, entity.pos.y, t) * view.scale
   }
   let radius = entity.radius * view.scale
-  // if (entity instanceof GamePlayer || entity instanceof GameEnemy) {
-  //   radius *= 1 + 0.1 * Math.pow(entity.energy, 1 / 2)
-  // }
   return { x, y, radius }
 }
 
@@ -623,18 +610,7 @@ export function getInputs(keyboard, gamepads = navigator.getGamepads()) {
       velocity = { x, y }
     }
     const action = gamepad.buttons[0].pressed
-    // console.log(
-    //   gamepad.buttons
-    //     .map((b, i) => ({ b, i }))
-    //     .filter(({ b }) => b.pressed)
-    //     .map(({ i }) => i),
-    // )
     inputs[gamepad.index] = { velocity, action }
-    // console.log(
-    //   gamepad.buttons
-    //     .map((b, i) => b.pressed && i)
-    //     .filter((i) => typeof i === "number"),
-    // )
   }
   for (let i = 0, n = ACTIONS.length; i < n; i++) {
     if (inputs[i]) continue
@@ -670,14 +646,3 @@ export function getFree(collection) {
 export function initKeyboard() {
   return Array(KEYS.length).fill(false)
 }
-
-/**
- * @returns {GamePath[]}
- */
-// export function getEnemyPaths() {
-//   const path = new Path2D()
-//   path.arc(0, 0, 10, 0, TAU)
-//   path.arc(-3, -2, 2, 0, TAU)
-//   path.arc(3, -2, 2, 0, TAU)
-//   return path
-// }
