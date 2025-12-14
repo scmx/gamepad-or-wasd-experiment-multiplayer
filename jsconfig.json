@@ -2,7 +2,7 @@
   "compilerOptions": {
     "allowJs": true,
     "checkJs": true,
-    "strict": true
+    "strict": true,
     "target": "es2022", // Latest major browser support
     // "module": "Node16", // Use Node16 module syntax
     // "moduleResolution": "node16",
