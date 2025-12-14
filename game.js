@@ -28,7 +28,7 @@ export class GamePlayer extends GameEntity {
   index = 0
   radius = 5
   speed = 3
-  energy = 1
+  energy = 0
   color = "white"
   rumbl = { duration: 0, ready: false }
 }
@@ -36,7 +36,7 @@ export class GamePlayer extends GameEntity {
 export class GameEnemy extends GameEntity {
   radius = 4
   speed = 3
-  energy = 1
+  energy = 0
   color = "red"
 }
 
@@ -52,7 +52,7 @@ export class GamePoison extends GameItem {
 export class GameModel {
   /** @type {'playing' | 'gameover'} */
   state = "playing"
-  winningEnergy = 100
+  winningEnergy = 20
   simulationTime = 0
   frameTime = 0
   interval = 50
@@ -86,6 +86,7 @@ export class GameView {
 export default function (ctx) {
   const keyboard = initKeyboard()
   const model = new GameModel()
+  window.MODEL = model
   for (let i = 0; i < 2; i++) {
     const player = new GamePlayer()
     player.index = i
@@ -162,6 +163,19 @@ export function animate(
         } else if (model.playersEnergy >= model.winningEnergy) {
           model.state = "gameover"
           console.log("You win!")
+        }
+      } else if (model.state === "gameover") {
+        for (const input of getInputs(keyboard)) {
+          if (input.action) {
+            model.state = "playing"
+            for (const player of model.players) {
+              player.energy = 0
+            }
+            for (const enemy of model.enemies) {
+              enemy.energy = 0
+            }
+            break
+          }
         }
       }
       accumulator -= model.interval
@@ -386,7 +400,7 @@ export function update(model, inputs) {
     if (input?.velocity) applyVelocity(input.velocity, player, model)
     if (input?.action) {
       if (player.energy >= 3) {
-        player.energy = 0
+        player.energy = Math.max(0, player.energy - 3)
         const poison = getFree(model.poisons)
         if (poison) poison.pos = { ...player.pos }
         console.log("action", poison)

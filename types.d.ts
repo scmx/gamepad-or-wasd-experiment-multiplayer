@@ -14,3 +14,7 @@ type GamePath = {
   stroke?: string
   lineWidth?: number
 }
+
+interface Window {
+  MODEL: GameModel
+}
